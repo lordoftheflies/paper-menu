@@ -8,7 +8,7 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../iron-behaviors/iron-control-state.html">
 <link rel="import" href="../iron-collapse/iron-collapse.html">
 <link rel="import" href="paper-menu-shared-styles.html">
@@ -54,170 +54,227 @@ item has bolded text. Please see the `<paper-menu>` docs for which attributes
 -->
 
 <dom-module id="paper-submenu">
-  <template>
-    <style include="paper-menu-shared-styles"></style>
+    <template>
+        <style include="paper-menu-shared-styles"></style>
 
-    <div class="selectable-content" on-tap="_onTap">
-      <content id="trigger" select=".menu-trigger"></content>
-    </div>
-    <iron-collapse id="collapse" opened="{{opened}}">
-      <content id="content" select=".menu-content"></content>
-    </iron-collapse>
-  </template>
+        <div class="selectable-content" on-tap="_onTap">
+            <slot id="trigger" name="menu-trigger"></slot>
+        </div>
+        <iron-collapse id="collapse" opened="{{opened}}">
+            <slot id="content" name="menu-content"></slot>
+        </iron-collapse>
+    </template>
 
-  <script>
+    <script>
 
-  (function() {
-
-    Polymer({
-
-      is: 'paper-submenu',
-
-      properties: {
-        /**
-         * Fired when the submenu is opened.
-         *
-         * @event paper-submenu-open
+        /*
+         * @customElement
+         * @polymer
+         * @demo demo/index.html
          */
+        class PaperSubmenu extends Polymer.mixinBehaviors([Polymer.IronControlState], Polymer.Element) {
 
-        /**
-         * Fired when the submenu is closed.
-         *
-         * @event paper-submenu-close
-         */
+            static get is() {
+                return 'paper-submenu';
+            }
 
-        /**
-         * Set opened to true to show the collapse element and to false to hide it.
-         *
-         * @attribute opened
-         */
-        opened: {
-          type: Boolean,
-          value: false,
-          notify: true,
-          observer: '_openedChanged'
+            static get properties() {
+                return {
+                    /**
+                     * Fired when the submenu is opened.
+                     *
+                     * @event paper-submenu-open
+                     */
+
+                    /**
+                     * Fired when the submenu is closed.
+                     *
+                     * @event paper-submenu-close
+                     */
+
+                    /**
+                     * Set opened to true to show the collapse element and to false to hide it.
+                     *
+                     * @attribute opened
+                     */
+                    opened: {
+                        type: Boolean,
+                        value: false,
+                        notify: true
+                    }
+                };
+            }
+
+            static get observers() {
+                return [
+                    '_openedChanged(opened)'
+                ]
+            }
+
+            ready() {
+                super.ready();
+
+
+                console.log('ready');
+                this.addEventListener('focus', this._onFocus);
+            }
+
+
+            get __parent() {
+                return this.parentNode;
+            }
+
+
+            get __trigger() {
+                return this.shadowRoot
+                // If you have more than one slot, you can use a
+                // different selector to identify the slot you're interested in.
+                    .querySelector('slot[name=menu-trigger')
+                    .assignedNodes({flatten: true})
+                    .filter(n => n.nodeType === Node.ELEMENT_NODE)[0];
+//                return Polymer.dom(this.$.trigger).getDistributedNodes()[0];
+            }
+
+            get __content() {
+                return this.shadowRoot
+                // If you have more than one slot, you can use a
+                // different selector to identify the slot you're interested in.
+                    .querySelector('slot[name=menu-content')
+                    .assignedNodes({flatten: true})
+                    .filter(n => n.nodeType === Node.ELEMENT_NODE)[0];
+//                return Polymer.dom(this.$.content).getDistributedNodes()[0];
+            }
+
+
+            connectedCallback() {
+                super.connectedCallback();
+
+                console.log('connectedCallback');
+                let self = this;
+                setTimeout(function () {
+                    let distributedNodes = this.$.trigger.assignedNodes({flatten: true});
+                    console.log(distributedNodes);
+                    distributedNodes.forEach(function (item) {
+                        item.addEventListener('iron-activate', self._onParentIronActivate);
+                    })
+                }.bind(this), 0);
+            }
+
+            disconnectedCallback() {
+                super.disconnectedCallback();
+
+                console.log('disconnectedCallback');
+                setTimeout(function () {
+                    let distributedNodes = this.$.content.assignedNodes({flatten: true});
+                    console.log(distributedNodes);
+                    distributedNodes.forEach(function (item) {
+                        item.removeEventListener('iron-activate');
+//                        item.removeEventListener('iron-activate', this._onParentIronActivate);
+                    })
+                }.bind(this), 0);
+            }
+
+            /**
+             * Expand the submenu content.
+             */
+            open() {
+
+                console.log('open');
+                if (!this.disabled) {
+                    this.opened = true;
+                }
+            }
+
+            /**
+             * Collapse the submenu content.
+             */
+            close() {
+
+                console.log('close');
+                this.opened = false;
+            }
+
+            /**
+             * Toggle the submenu.
+             */
+            toggle() {
+                console.log('toggle');
+                if (this.opened) {
+                    this.close();
+                } else {
+                    this.open();
+                }
+            }
+
+            /**
+             * A handler that is called when the trigger is tapped.
+             */
+            _onTap(e) {
+                console.log('on tap');
+                if (!this.disabled) {
+                    this.toggle();
+                }
+            }
+
+            /**
+             * Toggles the submenu content when the trigger is tapped.
+             */
+            _openedChanged(opened, oldOpened) {
+                console.debug('opened changed', opened, oldOpened);
+                if (opened) {
+                    this.__trigger && this.__trigger.classList.add('iron-selected');
+                    this.__content && this.__content.focus();
+                    this.fire('paper-submenu-open');
+                } else if (oldOpened != null) {
+                    this.__trigger && this.__trigger.classList.remove('iron-selected');
+                    this.fire('paper-submenu-close');
+                }
+            }
+
+            /**
+             * A handler that is called when `iron-activate` is fired.
+             *
+             * @param {CustomEvent} event An `iron-activate` event.
+             */
+            _onParentIronActivate(event) {
+                console.debug('on parent iron activate');
+                var parent = this.__parent;
+                if (Polymer.dom(event).localTarget === parent) {
+                    // The activated item can either be this submenu, in which case it
+                    // should be expanded, or any of the other sibling submenus, in which
+                    // case this submenu should be collapsed.
+                    if (event.detail.item !== this && !parent.multi) {
+                        this.close();
+                    }
+                }
+            }
+
+            /**
+             * If the dropdown is open when disabled becomes true, close the
+             * dropdown.
+             *
+             * @param {boolean} disabled True if disabled, otherwise false.
+             */
+            _disabledChanged(disabled) {
+                console.log('disabled changed');
+                Polymer.IronControlState._disabledChanged.apply(this, arguments);
+                if (disabled && this.opened) {
+                    this.close();
+                }
+            }
+
+            /**
+             * Handler that is called when the menu receives focus.
+             *
+             * @param {FocusEvent} event A focus event.
+             */
+            _onFocus(event) {
+                console.log('on focus');
+                this.__trigger && this.__trigger.focus();
+            }
         }
-      },
 
-      behaviors: [
-        Polymer.IronControlState
-      ],
-
-      listeners: {
-        'focus': '_onFocus'
-      },
-
-      get __parent() {
-        return Polymer.dom(this).parentNode;
-      },
-
-      get __trigger() {
-        return Polymer.dom(this.$.trigger).getDistributedNodes()[0];
-      },
-
-      get __content() {
-        return Polymer.dom(this.$.content).getDistributedNodes()[0];
-      },
-
-      attached: function() {
-        this.listen(this.__parent, 'iron-activate', '_onParentIronActivate');
-      },
-
-      detached: function() {
-        this.unlisten(this.__parent, 'iron-activate', '_onParentIronActivate');
-      },
-
-      /**
-       * Expand the submenu content.
-       */
-      open: function() {
-        if (!this.disabled) {
-          this.opened = true;
-        }
-      },
-
-      /**
-       * Collapse the submenu content.
-       */
-      close: function() {
-        this.opened = false;
-      },
-
-      /**
-       * Toggle the submenu.
-       */
-      toggle: function() {
-        if (this.opened) {
-          this.close();
-        } else {
-          this.open();
-        }
-      },
-
-      /**
-       * A handler that is called when the trigger is tapped.
-       */
-      _onTap: function(e) {
-        if (!this.disabled) {
-          this.toggle();
-        }
-      },
-
-      /**
-       * Toggles the submenu content when the trigger is tapped.
-       */
-      _openedChanged: function(opened, oldOpened) {
-        if (opened) {
-          this.__trigger && this.__trigger.classList.add('iron-selected');
-          this.__content && this.__content.focus();
-          this.fire('paper-submenu-open');
-        } else if (oldOpened != null) {
-          this.__trigger && this.__trigger.classList.remove('iron-selected');
-          this.fire('paper-submenu-close');
-        }
-      },
-
-      /**
-       * A handler that is called when `iron-activate` is fired.
-       *
-       * @param {CustomEvent} event An `iron-activate` event.
-       */
-      _onParentIronActivate: function(event) {
-        var parent = this.__parent;
-        if (Polymer.dom(event).localTarget === parent) {
-          // The activated item can either be this submenu, in which case it
-          // should be expanded, or any of the other sibling submenus, in which
-          // case this submenu should be collapsed.
-          if (event.detail.item !== this && !parent.multi) {
-            this.close();
-          }
-        }
-      },
-
-      /**
-       * If the dropdown is open when disabled becomes true, close the
-       * dropdown.
-       *
-       * @param {boolean} disabled True if disabled, otherwise false.
-       */
-      _disabledChanged: function(disabled) {
-        Polymer.IronControlState._disabledChanged.apply(this, arguments);
-        if (disabled && this.opened) {
-          this.close();
-        }
-      },
-
-      /**
-       * Handler that is called when the menu receives focus.
-       *
-       * @param {FocusEvent} event A focus event.
-       */
-      _onFocus: function(event) {
-        this.__trigger && this.__trigger.focus();
-      }
-
-    });
-
-  })();
-</script>
+        // Register custom element definition using standard platform API
+        customElements.define(PaperSubmenu.is, PaperSubmenu);
+    </script>
 </dom-module>

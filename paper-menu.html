@@ -8,7 +8,7 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 
-<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../iron-menu-behavior/iron-menu-behavior.html">
 <link rel="import" href="../paper-styles/default-theme.html">
 <link rel="import" href="paper-menu-shared-styles.html">
@@ -67,34 +67,41 @@ of a menu item will also focus it.
 -->
 
 <dom-module id="paper-menu">
-  <template>
-    <style include="paper-menu-shared-styles"></style>
-    <style>
-      :host {
-        display: block;
-        padding: 8px 0;
+    <template>
+        <style include="paper-menu-shared-styles"></style>
+        <style>
+            :host {
+                display: block;
+                padding: 8px 0;
 
-        background: var(--paper-menu-background-color, --primary-background-color);
-        color: var(--paper-menu-color, --primary-text-color);
+                background: var(--paper-menu-background-color, --primary-background-color);
+                color: var(--paper-menu-color, --primary-text-color);
 
-        @apply(--paper-menu);
-      }
-    </style>
+                @apply(--paper-menu);
+            }
+        </style>
 
-    <div class="selectable-content">
-      <content></content>
-    </div>
-  </template>
+        <div class="selectable-content">
+            <slot></slot>
+        </div>
+    </template>
 
-  <script>
-    (function() {
-      Polymer({
-        is: 'paper-menu',
+    <script>
 
-        behaviors: [
-          Polymer.IronMenuBehavior
-        ]
-      });
-    })();
-  </script>
+        /*
+         * @customElement
+         * @polymer
+         * @demo demo/index.html
+         */
+        class PaperMenu extends Polymer.mixinBehaviors([Polymer.IronMenuBehavior], Polymer.Element) {
+
+            static get is() {
+                return 'paper-menu';
+            }
+
+        }
+
+        // Register custom element definition using standard platform API
+        customElements.define(PaperMenu.is, PaperMenu);
+    </script>
 </dom-module>
